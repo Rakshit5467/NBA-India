@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "155885730954",
+    "project_id": "nba-india-64215",
+    "storage_bucket": "nba-india-64215.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:155885730954:android:203fef1dc59e09d7d78173",
+        "android_client_info": {
+          "package_name": "com.example.nba"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4VHgkhbTma0V3skIzHo-jhTlx9Dteihw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
