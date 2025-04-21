@@ -29,7 +29,7 @@ class _SchedulePageState extends State<SchedulePage> {
   void initState() {
     super.initState();
     _loadFavoriteTeams();
-    
+
     TeamRepository().fetchTeamData().then((_) {
       setState(() {});
     });
@@ -47,12 +47,12 @@ class _SchedulePageState extends State<SchedulePage> {
   Future<void> _loadFavoriteTeams() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    
+
     final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .get();
-        
+
     if (doc.exists) {
       setState(() {
         _favTeams = List<String>.from(doc.data()?['favTeams'] ?? []);
@@ -67,9 +67,14 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Future<Map<String, dynamic>> _fetchScheduleData() async {
-    final dateForUs =
-        selectedDate.subtract(const Duration(hours: 9, minutes: 30));
-    final dateString = DateFormat('yyyyMMdd').format(dateForUs);
+    final localMidnight = DateTime(
+    selectedDate.year,
+    selectedDate.month,
+    selectedDate.day,
+  );
+  final asUtc      = localMidnight.toUtc();
+  final usEastern  = asUtc.subtract(const Duration(hours: 5));
+  final dateString = DateFormat('yyyyMMdd').format(usEastern);
 
     const baseUrl = 'tank01-fantasy-stats.p.rapidapi.com';
     const endpointPath = '/getNBAScoresOnly';
@@ -79,11 +84,12 @@ class _SchedulePageState extends State<SchedulePage> {
     };
 
     final headers = {
-      'X-RapidAPI-Key': '79826d6a33msh9ae796863a264ffp1931dcjsn430225997108',
+      'X-RapidAPI-Key': 'e419ab8c9bmsh207d1141f52d94bp17f987jsnc1d87cac5dd9',
       'X-RapidAPI-Host': 'tank01-fantasy-stats.p.rapidapi.com',
     };
 
     final scheduleUri = Uri.https(baseUrl, endpointPath, queryParams);
+    print('Requesting schedule from 2: $scheduleUri');
 
     final response = await http.get(scheduleUri, headers: headers);
     if (response.statusCode == 200) {
@@ -130,36 +136,35 @@ class _SchedulePageState extends State<SchedulePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-              elevation: 0,
-              backgroundColor: Colors.white,
-              centerTitle: false,
-              toolbarHeight: 100,
-              leadingWidth: 100,
-              title: Row(
-                children: [
-                  Image.asset(
-                    'assets/images/nbaLogo.png',
-                    height: 50,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'NBA',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.more_horiz, color: Colors.black),
-                  onPressed: () {
-                  },
-                ),
-              ],
+        elevation: 0,
+        backgroundColor: Colors.white,
+        centerTitle: false,
+        toolbarHeight: 100,
+        leadingWidth: 100,
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/nbaLogo.png',
+              height: 50,
             ),
+            const SizedBox(width: 8),
+            const Text(
+              'NBA',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_horiz, color: Colors.black),
+            onPressed: () {},
+          ),
+        ],
+      ),
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
@@ -196,8 +201,8 @@ class _SchedulePageState extends State<SchedulePage> {
                 onPageChanged: (pageIndex) {
                   setState(() {
                     final dayOffset = selectedDate.weekday - 1;
-                    selectedDate = timelineStart.add(Duration(
-                        days: pageIndex * 7 + dayOffset));
+                    selectedDate = timelineStart
+                        .add(Duration(days: pageIndex * 7 + dayOffset));
                   });
                 },
                 itemBuilder: (context, pageIndex) {
@@ -254,8 +259,12 @@ class _SchedulePageState extends State<SchedulePage> {
                   final scheduleMap = snapshot.data!;
                   final sortedGames = scheduleMap.entries.toList()
                     ..sort((a, b) {
-                      final epochA = double.tryParse(a.value['gameTime_epoch'] ?? '0') ?? 0;
-                      final epochB = double.tryParse(b.value['gameTime_epoch'] ?? '0') ?? 0;
+                      final epochA =
+                          double.tryParse(a.value['gameTime_epoch'] ?? '0') ??
+                              0;
+                      final epochB =
+                          double.tryParse(b.value['gameTime_epoch'] ?? '0') ??
+                              0;
                       return epochA.compareTo(epochB);
                     });
 

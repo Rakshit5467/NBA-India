@@ -16,7 +16,8 @@ class TeamRepository {
     const endpointPath = '/getNBATeams';
 
     final headers = {
-      'X-RapidAPI-Key': '79826d6a33msh9ae796863a264ffp1931dcjsn430225997108', // Replace with your actual key.
+      'X-RapidAPI-Key':
+          'e419ab8c9bmsh207d1141f52d94bp17f987jsnc1d87cac5dd9', // Replace with your actual key.
       'X-RapidAPI-Host': baseUrl,
     };
 
@@ -32,7 +33,8 @@ class TeamRepository {
         _teamData![abv] = team;
       }
     } else {
-      throw Exception('Failed to fetch team data. Code: ${response.statusCode}');
+      throw Exception(
+          'Failed to fetch team data. Code: ${response.statusCode}');
     }
   }
 

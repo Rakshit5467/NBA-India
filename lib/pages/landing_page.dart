@@ -37,7 +37,7 @@ class _LandingPageState extends State<LandingPage> {
   void initState() {
     super.initState();
     _initializeFirebase();
-    
+
     // Initialize auth listener
     _auth.authStateChanges().listen((User? user) {
       setState(() {
@@ -54,7 +54,8 @@ class _LandingPageState extends State<LandingPage> {
     timelineStart = _getMonday(startDate);
     numberOfWeeks = (endDate.difference(timelineStart).inDays ~/ 7) + 1;
     final currentMonday = _getMonday(selectedDate);
-    final currentWeekIndex = (currentMonday.difference(timelineStart).inDays) ~/ 7;
+    final currentWeekIndex =
+        (currentMonday.difference(timelineStart).inDays) ~/ 7;
     _pageController = PageController(initialPage: currentWeekIndex);
   }
 
@@ -65,22 +66,30 @@ class _LandingPageState extends State<LandingPage> {
   /// Returns the Monday of the week for a given date
   DateTime _getMonday(DateTime date) {
     int subtract = date.weekday - 1; // Monday is weekday=1
-    return DateTime(date.year, date.month, date.day).subtract(Duration(days: subtract));
+    return DateTime(date.year, date.month, date.day)
+        .subtract(Duration(days: subtract));
   }
 
   /// Fetch schedule data from your RapidAPI endpoint, returning the earliest game
   Future<Map<String, dynamic>?> _fetchSingleGame() async {
-    // Subtract 9h30m if you want to align with US date for EST
-    final dateForUs =
-        selectedDate.subtract(const Duration(hours: 9, minutes: 30));
-    final dateString = DateFormat('yyyyMMdd').format(dateForUs);
+    final localMidnight = DateTime(
+    selectedDate.year,
+    selectedDate.month,
+    selectedDate.day,
+  );
+  final asUtc      = localMidnight.toUtc();
+  final usEastern  = asUtc.subtract(const Duration(hours: 5));
+  final dateString = DateFormat('yyyyMMdd').format(usEastern);
 
     const baseUrl = 'tank01-fantasy-stats.p.rapidapi.com';
     const endpointPath = '/getNBAScoresOnly';
-    final queryParams = {'gameDate': dateString};
+
+    final queryParams = {
+      'gameDate': dateString,
+    };
 
     final headers = {
-      'X-RapidAPI-Key': '79826d6a33msh9ae796863a264ffp1931dcjsn430225997108',
+      'X-RapidAPI-Key': 'e419ab8c9bmsh207d1141f52d94bp17f987jsnc1d87cac5dd9',
       'X-RapidAPI-Host': 'tank01-fantasy-stats.p.rapidapi.com',
     };
 
@@ -94,54 +103,56 @@ class _LandingPageState extends State<LandingPage> {
       if (scheduleMap == null || scheduleMap.isEmpty) return null;
 
       List<String> favTeams = [];
-    if (_currentUser != null) {
-      try {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(_currentUser!.uid)
-            .get();
-        if (userDoc.exists) {
-          favTeams = List<String>.from(userDoc.data()?['favTeams'] ?? []);
+      if (_currentUser != null) {
+        try {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(_currentUser!.uid)
+              .get();
+          if (userDoc.exists) {
+            favTeams = List<String>.from(userDoc.data()?['favTeams'] ?? []);
+          }
+        } catch (e) {
+          print('Error fetching favorite teams: $e');
         }
-      } catch (e) {
-        print('Error fetching favorite teams: $e');
       }
-    }
 
-    // Convert schedule map to list of games
-    final games = scheduleMap.entries.toList();
+      // Convert schedule map to list of games
+      final games = scheduleMap.entries.toList();
 
-    // If user has favorite teams, try to find a game involving them
-    if (favTeams.isNotEmpty) {
-      // First, look for games where either team is in favorites
-      final favoriteGames = games.where((game) {
-        final homeTeam = game.value['home'] ?? '';
-        final awayTeam = game.value['away'] ?? '';
-        return favTeams.contains(homeTeam) || favTeams.contains(awayTeam);
-      }).toList();
+      // If user has favorite teams, try to find a game involving them
+      if (favTeams.isNotEmpty) {
+        // First, look for games where either team is in favorites
+        final favoriteGames = games.where((game) {
+          final homeTeam = game.value['home'] ?? '';
+          final awayTeam = game.value['away'] ?? '';
+          return favTeams.contains(homeTeam) || favTeams.contains(awayTeam);
+        }).toList();
 
-      if (favoriteGames.isNotEmpty) {
-        // Sort by gameTime_epoch ascending, pick the earliest favorite game
-        favoriteGames.sort((a, b) {
-          final epochA = double.tryParse(a.value['gameTime_epoch'] ?? '0') ?? 0;
-          final epochB = double.tryParse(b.value['gameTime_epoch'] ?? '0') ?? 0;
-          return epochA.compareTo(epochB);
-        });
-        return favoriteGames.first.value;
+        if (favoriteGames.isNotEmpty) {
+          // Sort by gameTime_epoch ascending, pick the earliest favorite game
+          favoriteGames.sort((a, b) {
+            final epochA =
+                double.tryParse(a.value['gameTime_epoch'] ?? '0') ?? 0;
+            final epochB =
+                double.tryParse(b.value['gameTime_epoch'] ?? '0') ?? 0;
+            return epochA.compareTo(epochB);
+          });
+          return favoriteGames.first.value;
+        }
       }
+
+      // If no favorite games found or user not logged in, return the earliest game
+      games.sort((a, b) {
+        final epochA = double.tryParse(a.value['gameTime_epoch'] ?? '0') ?? 0;
+        final epochB = double.tryParse(b.value['gameTime_epoch'] ?? '0') ?? 0;
+        return epochA.compareTo(epochB);
+      });
+
+      return games.isNotEmpty ? games.first.value : null;
+    } else {
+      throw Exception('Failed to load schedule. Code: ${response.statusCode}');
     }
-
-    // If no favorite games found or user not logged in, return the earliest game
-    games.sort((a, b) {
-      final epochA = double.tryParse(a.value['gameTime_epoch'] ?? '0') ?? 0;
-      final epochB = double.tryParse(b.value['gameTime_epoch'] ?? '0') ?? 0;
-      return epochA.compareTo(epochB);
-    });
-
-    return games.isNotEmpty ? games.first.value : null;
-  } else {
-    throw Exception('Failed to load schedule. Code: ${response.statusCode}');
-  }
   }
 
   /// Converts an EST time string like "8:00p" into IST (e.g. "5:30 AM")
@@ -209,8 +220,10 @@ class _LandingPageState extends State<LandingPage> {
 
                   final awayLogoUrl = TeamRepository().getTeamLogo(awayTeam);
                   final homeLogoUrl = TeamRepository().getTeamLogo(homeTeam);
-                  final awayRecord = TeamRepository().getTeamRecord(awayTeam) ?? '--';
-                  final homeRecord = TeamRepository().getTeamRecord(homeTeam) ?? '--';
+                  final awayRecord =
+                      TeamRepository().getTeamRecord(awayTeam) ?? '--';
+                  final homeRecord =
+                      TeamRepository().getTeamRecord(homeTeam) ?? '--';
 
                   // Decide time
                   String displayTime;
@@ -221,9 +234,13 @@ class _LandingPageState extends State<LandingPage> {
                   } else if (lowerStatus.contains('completed')) {
                     displayTime = 'Final';
                   } else if (lowerStatus.contains('not started yet')) {
-                    displayTime = gameTimeRaw.isEmpty ? '--' : _convertEstToIst(gameTimeRaw);
+                    displayTime = gameTimeRaw.isEmpty
+                        ? '--'
+                        : _convertEstToIst(gameTimeRaw);
                   } else {
-                    displayTime = gameTimeRaw.isEmpty ? '--' : _convertEstToIst(gameTimeRaw);
+                    displayTime = gameTimeRaw.isEmpty
+                        ? '--'
+                        : _convertEstToIst(gameTimeRaw);
                   }
 
                   // Decide color for the displayTime text
@@ -274,10 +291,12 @@ class _LandingPageState extends State<LandingPage> {
                                           awayLogoUrl,
                                           height: 40,
                                           width: 40,
-                                          errorBuilder: (context, error, stackTrace) =>
-                                              const Icon(Icons.error),
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  const Icon(Icons.error),
                                         )
-                                      : const Icon(Icons.image_not_supported, size: 40),
+                                      : const Icon(Icons.image_not_supported,
+                                          size: 40),
                                   const SizedBox(height: 4),
                                   Text(
                                     awayTeam,
@@ -286,7 +305,6 @@ class _LandingPageState extends State<LandingPage> {
                                       fontSize: 14,
                                     ),
                                   ),
-                                  
                                   Text(
                                     awayRecord,
                                     style: const TextStyle(
@@ -330,10 +348,12 @@ class _LandingPageState extends State<LandingPage> {
                                           homeLogoUrl,
                                           height: 40,
                                           width: 40,
-                                          errorBuilder: (context, error, stackTrace) =>
-                                              const Icon(Icons.error),
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  const Icon(Icons.error),
                                         )
-                                      : const Icon(Icons.image_not_supported, size: 40),
+                                      : const Icon(Icons.image_not_supported,
+                                          size: 40),
                                   const SizedBox(height: 4),
                                   Text(
                                     homeTeam,
@@ -419,8 +439,7 @@ class _LandingPageState extends State<LandingPage> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.more_horiz, color: Colors.black),
-                  onPressed: () {
-                  },
+                  onPressed: () {},
                 ),
               ],
             )
@@ -430,7 +449,7 @@ class _LandingPageState extends State<LandingPage> {
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.grey[200],
         currentIndex: _currentIndex,
-        selectedItemColor: Colors.black, 
+        selectedItemColor: Colors.black,
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
