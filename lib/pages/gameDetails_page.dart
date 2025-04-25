@@ -116,7 +116,8 @@ class _GameDetailsPageState extends State<GameDetailsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Game Details', style: TextStyle(fontSize: 18, color: Colors.white)),
+        title: Text('Game Details',
+            style: TextStyle(fontSize: 18, color: Colors.white)),
         backgroundColor: Colors.blue[900],
       ),
       body: SingleChildScrollView(
@@ -144,7 +145,12 @@ class _GameDetailsPageState extends State<GameDetailsPage> {
 
     final awayScore = widget.awayScore.isEmpty ? '--' : widget.awayScore;
     final homeScore = widget.homeScore.isEmpty ? '--' : widget.homeScore;
-    final gameStatus = widget.gameStatus.isEmpty ? '--' : widget.gameStatus;
+    final rawGameStatus = widget.gameStatus.isEmpty ? '--' : widget.gameStatus;
+    var gameStatusDisplay =
+        rawGameStatus.toLowerCase().contains('live') ? 'Live' : rawGameStatus;
+    if (rawGameStatus.toLowerCase().contains('not started yet')) {
+      gameStatusDisplay = 'Scheduled';
+    }
     final gameTime = widget.gameTime.isEmpty ? '--' : widget.gameTime;
 
     final gameID = gameInfo?['gameID'] ?? widget.gameID;
@@ -223,11 +229,11 @@ class _GameDetailsPageState extends State<GameDetailsPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(gameStatus),
+                            color: _getStatusColor(gameStatusDisplay),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            gameStatus,
+                            gameStatusDisplay,
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -363,9 +369,12 @@ class _GameDetailsPageState extends State<GameDetailsPage> {
                         final assists = player['assists']?.toString() ?? '0';
                         return DataRow(cells: [
                           DataCell(Text(name, style: TextStyle(fontSize: 12))),
-                          DataCell(Text(points, style: TextStyle(fontSize: 12))),
-                          DataCell(Text(rebounds, style: TextStyle(fontSize: 12))),
-                          DataCell(Text(assists, style: TextStyle(fontSize: 12))),
+                          DataCell(
+                              Text(points, style: TextStyle(fontSize: 12))),
+                          DataCell(
+                              Text(rebounds, style: TextStyle(fontSize: 12))),
+                          DataCell(
+                              Text(assists, style: TextStyle(fontSize: 12))),
                         ]);
                       }).toList(),
                     ),

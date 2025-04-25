@@ -12,6 +12,8 @@ import '../widgets/top_news_section.dart';
 import '../team_repository.dart';
 import 'auth_page.dart';
 import 'profile_page.dart';
+import '../widgets/score_card.dart'; // for BlinkingDot
+
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -186,8 +188,7 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   List<Widget> get _pages {
-    return [
-      // HOME PAGE - unchanged from your original code
+    return [  
       SingleChildScrollView(
         child: Column(
           children: [
@@ -230,7 +231,7 @@ class _LandingPageState extends State<LandingPage> {
                   final lowerStatus = gameStatus.toLowerCase();
                   if (lowerStatus.contains('live')) {
                     displayTime = gameClock.isEmpty ? '--' : gameClock;
-                    displayTime = '$displayTime\nLive - In Progress';
+                    displayTime = '$displayTime\nLive';
                   } else if (lowerStatus.contains('completed')) {
                     displayTime = 'Final';
                   } else if (lowerStatus.contains('not started yet')) {
@@ -243,15 +244,30 @@ class _LandingPageState extends State<LandingPage> {
                         : _convertEstToIst(gameTimeRaw);
                   }
 
-                  // Decide color for the displayTime text
-                  Color timeColor = Colors.grey;
-                  if (lowerStatus.contains('live')) {
-                    timeColor = Colors.red;
-                  } else if (lowerStatus.contains('completed')) {
-                    timeColor = Colors.red;
-                  } else if (lowerStatus.contains('not started yet')) {
-                    timeColor = Colors.blue;
-                  }
+                  Widget middleWidget;
+              if (lowerStatus.contains('completed')) {
+                middleWidget = const Text('Final', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16));
+              } else if (lowerStatus.contains('live')) {
+                final parts      = gameClock.split('-');
+                final timePart   = parts.isNotEmpty ? parts[0].trim() : '--';
+                final quarterStr = parts.length>1 ? parts[1].trim() : '';
+                middleWidget = Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const BlinkingDot(),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$timePart $quarterStr',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                );
+              } else {
+                middleWidget = Text(
+                  displayTime,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                );
+              }
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -324,20 +340,7 @@ class _LandingPageState extends State<LandingPage> {
                               ),
 
                               // Middle
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    displayTime,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: timeColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              middleWidget,
 
                               // Home column
                               Column(

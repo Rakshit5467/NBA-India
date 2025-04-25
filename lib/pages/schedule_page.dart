@@ -68,13 +68,13 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Future<Map<String, dynamic>> _fetchScheduleData() async {
     final localMidnight = DateTime(
-    selectedDate.year,
-    selectedDate.month,
-    selectedDate.day,
-  );
-  final asUtc      = localMidnight.toUtc();
-  final usEastern  = asUtc.subtract(const Duration(hours: 5));
-  final dateString = DateFormat('yyyyMMdd').format(usEastern);
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
+    final asUtc = localMidnight.toUtc();
+    final usEastern = asUtc.subtract(const Duration(hours: 5));
+    final dateString = DateFormat('yyyyMMdd').format(usEastern);
 
     const baseUrl = 'tank01-fantasy-stats.p.rapidapi.com';
     const endpointPath = '/getNBAScoresOnly';
@@ -106,6 +106,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
   String _convertEstToIst(String rawTime) {
     if (rawTime.isEmpty) return '--';
+    if (rawTime.contains('TBD')) return 'TBD';
 
     final lower = rawTime.toLowerCase().trim();
     final isPM = lower.endsWith('p');

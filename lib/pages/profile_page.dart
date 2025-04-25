@@ -14,6 +14,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final User? user = FirebaseAuth.instance.currentUser;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<String> _favTeams = [];
+  String _name = '';
   bool _isLoading = true;
 
   @override
@@ -30,6 +31,7 @@ class _ProfilePageState extends State<ProfilePage> {
       if (doc.exists) {
         setState(() {
           _favTeams = List<String>.from(doc.data()?['favTeams'] ?? []);
+          _name = doc.data()?['name'] ?? 'User Name';
           _isLoading = false;
         });
       }
@@ -118,7 +120,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              user?.displayName ?? 'User Name',
+                              _name,
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -215,17 +217,17 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       _buildActionButton(
                         'Important Dates',
-                        Icons.verified,
+                        Icons.event,
                         onPressed: () {},
                       ),
                       _buildActionButton(
                         'Fantasy',
-                        Icons.shopping_cart,
+                        Icons.leaderboard,
                         onPressed: () {},
                       ),
                       _buildActionButton(
                         'League Pass',
-                        Icons.card_membership,
+                        Icons.subscriptions,
                         onPressed: () {},
                       ),
                     ],

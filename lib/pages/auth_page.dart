@@ -18,6 +18,7 @@ class _AuthPageState extends State<AuthPage> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmController = TextEditingController();
   final favTeamController = TextEditingController();
 
   String? errorMsg;
@@ -25,7 +26,7 @@ class _AuthPageState extends State<AuthPage> {
 
   Future<void> _authenticate() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
       errorMsg = null;
@@ -42,7 +43,7 @@ class _AuthPageState extends State<AuthPage> {
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
-        
+
         await _firestore.collection('users').doc(cred.user!.uid).set({
           'name': nameController.text.trim(),
           'email': emailController.text.trim(),
@@ -71,11 +72,74 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
+  Future<void> _forgotPassword() async {
+    final resetEmailController =
+        TextEditingController(text: emailController.text.trim());
+    String? dialogError;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Text('Reset Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: resetEmailController,
+              decoration: InputDecoration(
+                labelText: 'Email',
+                errorText: dialogError,
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.black)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final email = resetEmailController.text.trim();
+              if (email.isEmpty || !email.contains('@')) {
+                setState(() {
+                  dialogError = 'Enter a valid email';
+                });
+                return;
+              }
+              Navigator.of(ctx).pop(); // dismiss dialog
+              try {
+                await _auth.sendPasswordResetEmail(email: email);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Password reset link sent! Check your email.',
+                    ),
+                  ),
+                );
+              } on FirebaseAuthException catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error: ${e.message}'),
+                  ),
+                );
+              }
+            },
+            child: const Text('SEND', style: TextStyle(color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    confirmController.dispose();
     favTeamController.dispose();
     super.dispose();
   }
@@ -83,38 +147,36 @@ class _AuthPageState extends State<AuthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       appBar: AppBar(
-              elevation: 0,
-              backgroundColor: Colors.white,
-              centerTitle: false,
-              toolbarHeight: 100,
-              leadingWidth: 100,
-              title: Row(
-                children: [
-                  Image.asset(
-                    'assets/images/nbaLogo.png',
-                    height: 50,
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'NBA',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.more_horiz, color: Colors.black),
-                  onPressed: () {
-                  },
-                ),
-              ],
+        elevation: 0,
+        backgroundColor: Colors.white,
+        centerTitle: false,
+        toolbarHeight: 100,
+        leadingWidth: 100,
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/nbaLogo.png',
+              height: 50,
             ),
+            const SizedBox(width: 8),
+            const Text(
+              'NBA',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_horiz, color: Colors.black),
+            onPressed: () {},
+          ),
+        ],
+      ),
       backgroundColor: Colors.white,
       body: Center(
         child: SingleChildScrollView(
@@ -146,9 +208,9 @@ class _AuthPageState extends State<AuthPage> {
                                 ),
                               ),
                               validator: (value) =>
-                                  (value == null || value.isEmpty) 
-                                  ? 'Please enter your name' 
-                                  : null,
+                                  (value == null || value.isEmpty)
+                                      ? 'Please enter your name'
+                                      : null,
                             ),
                             const SizedBox(height: 16),
                           ],
@@ -161,9 +223,9 @@ class _AuthPageState extends State<AuthPage> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            validator: (value) =>
-                                (value == null || !value.contains('@')) 
-                                ? 'Please enter a valid email' 
+                            validator: (value) => (value == null ||
+                                    !value.contains('@'))
+                                ? 'Please enter a valid email'
                                 : null,
                           ),
                           const SizedBox(height: 16),
@@ -177,25 +239,47 @@ class _AuthPageState extends State<AuthPage> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            validator: (value) =>
-                                (value == null || value.length < 6) 
-                                ? 'Password must be at least 6 characters' 
+                            validator: (value) => (value == null ||
+                                    value.length < 6)
+                                ? 'Password must be at least 6 characters'
                                 : null,
                           ),
+                          const SizedBox(height: 16),
                           if (!isLogin) ...[
+                            TextFormField(
+                              controller: confirmController,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                labelText: 'Confirm Password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please confirm your password';
+                                }
+                                if (value != passwordController.text) {
+                                  return 'Passwords do not match';
+                                }
+                                return null;
+                              },
+                            ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: favTeamController,
                               decoration: InputDecoration(
                                 labelText: 'Favorite Team (optional)',
-                                prefixIcon: const Icon(Icons.sports_basketball),
+                                prefixIcon:
+                                    const Icon(Icons.sports_basketball),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 16),
                           ],
-                          const SizedBox(height: 24),
                           if (errorMsg != null)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 16),
@@ -229,6 +313,7 @@ class _AuthPageState extends State<AuthPage> {
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
+                                        color: Colors.white
                                       ),
                                     ),
                             ),
@@ -260,9 +345,7 @@ class _AuthPageState extends State<AuthPage> {
                 const SizedBox(height: 24),
                 if (isLogin)
                   TextButton(
-                    onPressed: () {
-                      // Add forgot password functionality
-                    },
+                    onPressed: _forgotPassword,
                     child: const Text(
                       'Forgot Password?',
                       style: TextStyle(
