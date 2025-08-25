@@ -32,7 +32,7 @@ class _LoaderScreenState extends State<LoaderScreen>
     _animationController.repeat(reverse: true);
 
     // Simulate a loading process (3s) then go to LandingPage.
-    Future.delayed(const Duration(seconds: 4), () {
+    Future.delayed(const Duration(seconds: 5), () {
       // Match this with your animation duration
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LandingPage()),
